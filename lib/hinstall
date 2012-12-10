@@ -1,0 +1,32 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE: /usr/local/lib/honneur/hinstall
+# 
+#         USAGE: By "INSTALL" in hnew script and hedit script (see /usr/local/lib/honneur/hnew; /usr/local/lib/honneur/hedit)
+# 
+#   DESCRIPTION: Install a new packages
+#
+#==========================================================================
+
+
+dialog --title "ENTER PACKAGES" --inputbox \
+"Введите список пакетов для установки. \n\
+Используйте пробелы для разделения имён пакетов. \n\
+Пожалуйста, не используйте запятых, кавычек и прочих специальных символов. \n\
+Вводите только корректные названия пакетов, находящихся в репозитории Arch Linux. \n\
+\n\
+" \ 19 100 2> $TMP/HPKG
+
+PKGLIST="`cat $TMP/HPKG`"
+mkarchiso -p "${PKGLIST}" install
+
+if [ $? -eq 0 ] ; then
+	dialog --title "YAY" --msgbox \
+	"Выбранные пакеты успешно установлены " \ 7 65
+else
+	dialog --title "ОШИБКА" --msgbox \
+	"Произошла непредвиденная ошибка. \
+	Пожалуйста, удостоверьтесь в корректности вводимых имён пакетов, и попробуйте ещё раз. " \ 7 65
+
+fi

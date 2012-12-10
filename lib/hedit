@@ -1,0 +1,129 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE: /usr/local/lib/honneur/hnew
+# 
+#         USAGE: By "NEW" in main script (see /usr/local/bin/honneur) 
+# 
+#   DESCRIPTION: Menu for editing an existing Arch Medium
+#
+#==========================================================================
+
+#=============================================================================== 
+#    To verify compliance 
+#==========================================================================
+
+comp_funct () {
+	COMM=$1
+	if [ -e $HCOMP ];then
+		$COMM
+	else 
+		  dialog --title "BASE-SYSTEM NOT FOUND" --msgbox \
+		"Извините, но отсутствует базовая система. \
+		Пожалуйста, вернитесь в меню и выполните пункт $ITEM" \ 7 65
+	fi
+	}
+	
+ITEM=PREPARE  
+HCOMP="${TMP}/HPREPARE"
+
+
+while [ "$CHOISE" != "RETURN" ] ; do
+
+dialog --title "NEW IMAGE" \
+--menu \
+" Выберите пункт меню \n\
+Используйте клавиши ВВЕРХ/ВНИЗ, а так же ПРОБЕЛ или ENTER.\n\
+В первую очередь вам понадобится установить базовую систему, выбрав пункт BASE \n\
+Если вы хотите вернуться в главное меню, выберите RETURN" 18 76 6 \
+"TARGET" "Выбор редактируемого iso-образа" \
+"PREPARE" "Додготовка базовой системы (Не пропускайте этот шаг)" \
+"INSTALL PACKAGES" "Установка пакетов в целевую систему" \
+"CHROOT" "Вход в новую систему" \
+"MAKE ISO" "Создание образа" \
+"RETURN" "Возврат в меню" 2> $TMP/CHOISE
+
+CHOISE="`cat $TMP/CHOISE`"
+rm $TMP/CHOISE
+
+
+ 	
+ 
+if [ "$CHOISE" = "TARGET" ]; then
+	dialog --title "SELECT SOURCE DIRECTORY" --inputbox \
+	"Сейчас наобходимо ввести полный путь к образу, \n\
+	который будет редактироваться\n\
+	Пример того, как должен выглядеть ввод :\n\
+	\n\
+	      /tmp/archlinux.iso\n\
+	\n\
+		" \ 19 65 2> $TMP/liveiso
+	HFILE="`cat $TMP/liveiso`"
+	if [ -e $HFILE ]; then
+		HISO="`file $HFILE | awk '{print $3}'`"
+		if [ $HISO == "ISO" ]; then
+			dialog --title "CHECK" --msgbox \
+				"Выбранный файл $HFILE является iso-образом \
+				Работа будет продолжена " \ 7 65
+				HTARGET=$HFILE
+				
+		else
+			dialog --title "ОШИБКА" --msgbox \
+				"Выбранный файл $HFILE НЕ является iso-образом \
+				Пожалуйста, попробуйте ещё раз. " \ 7 65
+		fi
+	else
+	dialog --title "ОШИБКА" --msgbox \
+				"Выбранный файл $HFILE не существует. \
+				Пожалуйста, попробуйте ещё раз, удостоверившись, что вводите корректный путь к файлу. " \ 7 65
+	fi
+	
+	
+	
+fi 	
+
+if [ "$CHOISE" = "PREPARE" ]; then
+	cd ${TMP}
+	mkdir -p iso honor work/root-image 
+# Mount iso
+	echo "Монтирование образа..." 
+	mount -t iso9660 -o loop ${HTARGET} iso
+	cp iso/arch/x86_64/root-image.fs.sfs honor/
+
+	if [ $? -eq 0 ] ; then
+		echo "Распаковка squashfs..."
+	else
+		dialog --title "ОШИБКА" --msgbox \
+		"Произошла непредвиденная ошибка." \ 7 65
+	fi
+
+
+	cd honor 
+	unsquashfs root-image.fs.sfs
+	mount squashfs-root/root-image.fs $TMP/work/root-image/
+	if [ $? -eq 0 ] ; then
+		cd $TMP
+		touch $TMP/HPREPARE
+	else
+		dialog --title "ОШИБКА" --msgbox \
+		"Произошла непредвиденная ошибка. \
+	 	Пожалуйста, удостоверьтесь в правильности выбранного вами образа " \ 7 65
+
+	fi
+fi
+
+if [ "$CHOISE" = "INSTALL PACKAGES" ]; then
+	comp_funct hinstall #  This variable for action in module hcomp
+fi
+
+if [ "$CHOISE" = "CHROOT" ]; then	
+	comp_funct hchroot
+fi
+ 
+
+if [ "$CHOISE" = "MAKE ISO" ]; then
+	comp_funct  hboot
+fi
+
+done
+

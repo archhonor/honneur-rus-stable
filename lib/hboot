@@ -1,0 +1,105 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE: /usr/local/lib/honneur/hboot
+# 
+#         USAGE: By "BASE" in hnew script (see /usr/local/lib/honneur/hnew) 
+# 
+#   DESCRIPTION: Create a new archlinux system
+#
+#==========================================================================
+FILEPATH="/usr/local/lib/honneur/files"
+ARCH=$( uname -m )
+export ARCH
+
+dialog --title "Задать метку тома?" --yesno \
+	"Хотите ли вы задать метку тома (iso volume label) \n\
+	Если вы ответите \"НЕТ\", будет использовано значение MY_ARCH \n\ " 10 80
+	
+
+if [ $? -eq 0 ] ; then
+
+	dialog --title "ВВЕДИТЕ ISO VOLUME LABEL" --inputbox \
+	" Метка тома может содержать только латинские символы и иметь длину не более одиннадцати символов \n\
+	\n\
+	" \ 19 65 2> $TMP/Label
+	LABEL="`cat $TMP/Label`"
+
+	if [ ${#LABEL} -lt 12 ] ; then 
+
+		dialog --title "CHECK" --msgbox \
+		"Выбрана метка тома \
+		$LABEL " \ 7 65
+
+	else
+		dialog --title "UNCHECK" --msgbox \
+		"Извините, но метка тому не может содержать более 11 символов \
+		Установлено значение по-умолчанию " \ 7 80
+		LABEL="MY_ARCH"
+
+	fi
+
+else
+	LABEL="MY_ARCH"
+fi
+
+
+cd $TMP
+
+# Setup and generate the initramfs image
+cp /usr/lib/initcpio/hooks/archiso work/root-image/usr/lib/initcpio/hooks
+cp /usr/lib/initcpio/install/archiso work/root-image/usr/lib/initcpio/install
+# config for mkinitcpio 
+cp ${FILEPATH}/mkinitcpio-archiso.conf work/root-image/etc/mkinitcpio-archiso.conf
+mkdir -p work/root-image/boot/$ARCH work/iso/arch/boot/$ARCH/
+mkarchiso -r "mkinitcpio -c /etc/mkinitcpio-archiso.conf -k /boot/vmlinuz-linux -g /boot/$ARCH/archiso.img" run 
+mv work/root-image/boot/$ARCH/archiso.img work/iso/arch/boot/$ARCH/archiso.img
+
+
+# Copy kernel to boot
+
+ 
+if [ -e iso/arch/boot/x86_64/vmlinuz ] ; then
+	cp iso/arch/boot/x86_64/vmlinuz work/iso/arch/boot/x86_64/vmlinuz
+else
+	cp work/root-image/boot/vmlinuz-linux work/iso/arch/boot/x86_64/vmlinuz
+fi
+
+# Syslinux and isolinux
+
+
+mkdir -p work/iso/arch/boot/syslinux
+cp ${FILEPATH}/syslinux.cfg work/iso/arch/boot/syslinux/syslinux.cfg
+echo "LINUX /arch/boot/$ARCH/vmlinuz" >>  work/iso/arch/boot/syslinux/syslinux.cfg
+echo "INITRD /arch/boot/$ARCH/archiso.img" >>  work/iso/arch/boot/syslinux/syslinux.cfg
+echo "APPEND archisolabel=$LABEL" >>  work/iso/arch/boot/syslinux/syslinux.cfg
+echo " " >>  work/iso/arch/boot/syslinux/syslinux.cfg
+echo "ONTIMEOUT arch" >>  work/iso/arch/boot/syslinux/syslinux.cfg
+
+cp work/root-image/usr/lib/syslinux/menu.c32 work/iso/arch/boot/syslinux/
+mkdir -p work/iso/isolinux
+cp work/root-image/usr/lib/syslinux/iso* work/iso/isolinux/
+
+cp $FILEPATH/isolinux.cfg work/iso/isolinux/isolinux.cfg
+
+
+echo '# <img>         <mnt>                 <arch>   <sfs_comp>  <fs_type>  <fs_size>' >> work/iso/arch/aitab
+echo "root-image      /                     $ARCH     xz          ext4       50%" >>  work/iso/arch/aitab
+
+
+# Creating Arch live medium
+mkarchiso prepare
+DATE=$(date +%d-%m-%Y-%H:%m)
+ISONAME="$TMP/out/${LABEL}-${DATE}.iso"
+
+
+if mkarchiso -L "$LABEL" iso "${LABEL}-${DATE}.iso" ; then
+	dialog --title "YAY" --msgbox \
+	"Образ собран успешно. \
+	Вы можете найти его в ${TMP}/${ISONAME} " \ 7 65
+else
+	dialog --title "ОШИБКА" --msgbox \
+	"Произошла непредвиденная ошибка. \
+	Пожалуйста, удостоверьтесь в наличии свободного места в $TMP и попробуйте ещё раз " \ 7 65
+fi	
+cp ${ISONAME} ${TMP}

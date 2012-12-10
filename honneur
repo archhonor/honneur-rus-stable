@@ -1,0 +1,108 @@
+#!/bin/bash 
+#===============================================================================
+#
+#          FILE: /usr/local/bin/honneur
+# 
+#         USAGE: honneur 
+# 
+#   DESCRIPTION: Honneur - a dialog script for easy create and configurate live medium with ArchIso.
+# 
+#       OPTIONS: ---
+#  REQUIREMENTS: archiso, bash, dialog
+#          BUGS: ---
+#         NOTES: ---
+#        AUTHOR: <raven_cler>, ravencler@gmail.com
+#  ORGANIZATION: archhonor
+#       CREATED: 20.11.2012 02:56:49 EET
+#
+#==========================================================================
+#  This program is free software; you can redistribute it and/or modify 
+#  it under the terms of the GNU General Public License as published by 
+#  the Free Software Foundation; either version 2 of the License, or    
+#  (at your option) any later version.                                  
+#==========================================================================
+#  Designed for personal use by Sergey Mitrokhin. 
+#  In no event shall the author be liable for any direct, indirect, incidiental 
+#  special, exemlary, or consequental damages.
+#===============================================================================
+
+
+TMP="/var/tmp"
+export TMP
+if [ ! -d $TMP ]; then
+	mkdir -p $TMP
+fi
+
+PATH="$PATH:/usr/local/lib/honneur"
+export PATH;
+export COLOR=on
+
+while [ 0 ]; do
+
+ dialog --title "Honneur (version 0.1)" \
+--menu \
+"Select an option below using the UP/DOWN keys and SPACE or ENTER.\n\
+Alternate keys may also be used: '+', '-', and TAB." 18 72 4 \
+"TEMP" "Выбор временного каталога(/var/tmp по-умолчанию)" \
+"NEW" "Создать новый LiveISO-образ" \
+"EDIT" "Редактировать существующий LiveISO" \
+"EXIT" "Выход" 2> $TMP/CHOISE
+
+if [ ! $? = 0 ]; then
+  rm -f $TMP/CHOISE
+exit
+fi
+
+CHOISE="`cat $TMP/CHOISE`"
+rm $TMP/CHOISE
+
+# Start checking what to do. Some modules may reset CHOISE to run the
+# next item in line.
+
+
+if [ "$CHOISE" = "TEMP" ]; then
+
+	while [ "$TMP" != "$HTMP" ]  ; do
+
+	dialog --title "ВЫБЕРИТЕ ВРЕМЕННЫЙ КАТАЛОГ" --inputbox \
+	"Введите полный путь к директории, которая будет использоваться в \n\
+	качестве временного каталога, в котором будут проводиться все операции.\n\
+	Убедитесь, что на задаваемом разделе достаточное количество свободного места. \n\
+	Пожалуйста, не используйте пробелы.  \n\
+	Если указанный вами каталог отсутствует, он будет создан.      \n\
+	\n\
+	" \ 19 65 2> $TMP/HTMP
+	HTMP="`cat $TMP/HTMP`"
+	rm $TMP/HTMP
+	if [[ $HTMP == /* ]] ; then
+		rm $TMP/HTMP
+		TMP="${HTMP}"
+		dialog --title "YAY!" --msgbox \
+		"Выбрана временная директория ${TMP} " \ 7 65
+		if [ ! -d $TMP ]; then
+			mkdir -p $TMP
+		fi
+	else 
+		dialog --title "OH, NO!" --msgbox \
+	"Некорректное имя директории. Пожалуйста, начинайте ввод с символа /" \ 7 65
+	continue
+	fi
+
+done
+	unset HTMP
+fi
+
+if [ "$CHOISE" = "NEW" ]; then
+	hnew
+fi
+
+if [ "$CHOISE" = "EDIT" ]; then
+	hedit
+fi
+
+if [ "$CHOISE" = "EXIT" ]; then
+	break 
+fi
+
+done
+

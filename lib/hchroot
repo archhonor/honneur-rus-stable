@@ -1,0 +1,12 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE: /usr/local/lib/honneur/hcomp
+# 
+#         USAGE: By  hnew script and hedit script (see /usr/local/lib/honneur/hnew; /usr/local/lib/honneur/hedit)
+# 
+#   DESCRIPTION: To chroot in arch-medium system
+#
+#==========================================================================
+mkarchiso -r "bash" run
+

@@ -1,0 +1,73 @@
+#!/bin/bash 
+#===============================================================================
+#
+#          FILE: /usr/local/lib/honneur/hnew
+# 
+#         USAGE: By "NEW" in main script (see /usr/local/bin/honneur) 
+# 
+#   DESCRIPTION: Menu for creating a new Arch Medium
+#
+#==========================================================================
+
+
+comp_funct () {
+	COMM=$1
+	if [ -e $HCOMP ];then
+		$COMM
+	else 
+		  dialog --title "BASE-SYSTEM NOT FOUND" --msgbox \
+		"Извините, но отсутствует базовая система. \
+		Пожалуйста, вернитесь в меню и выполните пункт $ITEM" \ 7 65
+	fi
+	}
+	
+ITEM=BASE  
+HCOMP="${TMP}/HBASE"
+
+
+# Return to main menu (honneur)
+while [ "$CHOISE" != "RETURN" ] ; do
+
+dialog --title "NEW IMAGE" \
+--menu \
+" Выберите пункт меню \n\
+Используйте клавиши ВВЕРХ/ВНИЗ, а так же ПРОБЕЛ или ENTER.\n\
+В первую очередь вам понадобится установить базовую систему, выбрав пункт BASE \n\
+Если вы хотите вернуться в главное меню, выберите RETURN" 18 76 5 \
+"BASE" "Создание базовой системы (Не пропускайте этот шаг)" \
+"INSTALL PACKAGES" "Установка пакетов в целевую систему" \
+"CHROOT" "Вход в новую систему" \
+"MAKE ISO" "Создание образа" \
+"RETURN" "Возврат в меню" 2> $TMP/CHOISE
+
+ CHOISE="`cat $TMP/CHOISE`"
+ rm $TMP/CHOISE
+ ITEM=BASE  # This variable for message in module hcomp (/usr/local/lib/honneur/hcomp)
+
+if [ "$CHOISE" = "BASE" ]; then
+	cd $TMP
+
+	if mkarchiso init ; then
+		touch $TMP/HBASE
+	else
+		dialog --title "ОШИБКА" --msgbox \
+		"Произошла непредвиденная ошибка. \
+		Пожалуйста, удостоверьтесь в наличии свободного места в $TMP и попробуйте ещё раз " \ 7 65
+	fi	
+
+fi
+
+if [ "$CHOISE" = "INSTALL PACKAGES" ]; then
+	comp_funct hinstall #  This variable for action in module hcomp
+fi
+
+if [ "$CHOISE" = "CHROOT" ]; then	
+	comp_funct hchroot
+fi
+ 
+
+if [ "$CHOISE" = "MAKE ISO" ]; then
+	comp_funct hboot
+fi
+done
+
